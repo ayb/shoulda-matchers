@@ -319,7 +319,8 @@ describe Shoulda::Matchers::ActiveRecord::AssociationMatcher, type: :model do
 
             message = format_message(<<-MESSAGE, one_line: true)
               Expected Child to have a belongs_to association called parent
-              (either the association should have been defined with `required:
+              (and for the record to fail validation if :parent is unset; i.e.,
+              either the association should have been defined with `required:
               true`, or there should be a presence validation on :parent)
             MESSAGE
 
@@ -610,6 +611,105 @@ describe Shoulda::Matchers::ActiveRecord::AssociationMatcher, type: :model do
             MESSAGE
 
             expect(&assertion).to fail_with_message(message)
+          end
+        end
+      end
+    end
+
+    if active_record_supports_optional_for_associations?
+      context 'when the model ensures the association is set' do
+        context 'and the matcher is not qualified with anything' do
+          context 'and the matcher is not qualified with without_validating_presence' do
+            it 'fails with an appropriate message' do
+              model = create_child_model_belonging_to_parent do
+                before_validation :ensure_parent_is_set
+
+                def ensure_parent_is_set
+                  self.parent = Parent.create
+                end
+              end
+
+              assertion = lambda do
+                configuring_default_belongs_to_requiredness(true) do
+                  expect(model.new).to belong_to(:parent)
+                end
+              end
+
+              message = format_message(<<-MESSAGE, one_line: true)
+                Expected Child to have a belongs_to association called parent (and
+                for the record to fail validation if :parent is unset; i.e.,
+                either the association should have been defined with `required:
+                true`, or there should be a presence validation on :parent)
+              MESSAGE
+
+              expect(&assertion).to fail_with_message(message)
+            end
+          end
+
+          context 'and the matcher is qualified with without_validating_presence' do
+            it 'passes' do
+              model = create_child_model_belonging_to_parent do
+                before_validation :ensure_parent_is_set
+
+                def ensure_parent_is_set
+                  self.parent = Parent.create
+                end
+              end
+
+              configuring_default_belongs_to_requiredness(true) do
+                expect(model.new).
+                  to belong_to(:parent).
+                  without_validating_presence
+              end
+            end
+          end
+        end
+
+        context 'and the matcher is qualified with required' do
+          context 'and the matcher is not qualified with without_validating_presence' do
+            it 'fails with an appropriate message' do
+              model = create_child_model_belonging_to_parent do
+                before_validation :ensure_parent_is_set
+
+                def ensure_parent_is_set
+                  self.parent = Parent.create
+                end
+              end
+
+              assertion = lambda do
+                configuring_default_belongs_to_requiredness(true) do
+                  expect(model.new).to belong_to(:parent).required
+                end
+              end
+
+              message = format_message(<<-MESSAGE, one_line: true)
+                Expected Child to have a belongs_to association called parent
+                (and for the record to fail validation if :parent is unset; i.e.,
+                either the association should have been defined with `required:
+                true`, or there should be a presence validation on :parent)
+              MESSAGE
+
+              expect(&assertion).to fail_with_message(message)
+            end
+          end
+
+          context 'and the matcher is also qualified with without_validating_presence' do
+            it 'passes' do
+              model = create_child_model_belonging_to_parent do
+                before_validation :ensure_parent_is_set
+
+                def ensure_parent_is_set
+                  self.parent = Parent.create
+                end
+              end
+
+              configuring_default_belongs_to_requiredness(true) do
+                expect(model.new).
+                  to belong_to(:parent).
+                  required.
+                  without_validating_presence
+              end
+            end
           end
         end
       end
