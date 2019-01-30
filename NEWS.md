@@ -94,7 +94,7 @@ is now:
 * Add `without_presence_validation` qualifier to `belong_to` to get around the
   fact that `required` is assumed, above.
 
-  * *Original issues: [#1153, #1154]
+  * *Original issues: [#1153], [#1154]*
 
 * Add `allow_nil` qualifier to `delegate_method`.
 
